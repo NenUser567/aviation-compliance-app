@@ -4,10 +4,12 @@ type Row = {
   id: string;
   expiry_date: string | null;
   medical_expiry_date: string | null;
-  compliance_results: {
-    status: string | null;
-    days_to_expiry: number | null;
-  } | null;
+  compliance_results:
+    | {
+        status: string | null;
+        days_to_expiry: number | null;
+      }[]
+    | null;
 };
 
 function daysBetween(a: Date, b: Date) {
