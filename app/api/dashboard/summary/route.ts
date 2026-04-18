@@ -8,7 +8,7 @@ type Row = {
     | {
         status: string | null;
         days_to_expiry: number | null;
-      }[]
+      }
     | null;
 };
 
@@ -38,7 +38,16 @@ export async function GET() {
     return Response.json({ error: error.message }, { status: 500 });
   }
 
-  const rows = (data || []) as Row[];
+  const rows: Row[] = (data || []).map((r: any) => ({
+  id: r.id,
+  expiry_date: r.expiry_date,
+  medical_expiry_date: r.medical_expiry_date,
+  compliance_results:
+    Array.isArray(r.compliance_results) && r.compliance_results.length > 0
+      ? r.compliance_results[0]
+      : null,
+}));
+
   const now = new Date();
 
   let total = rows.length;
