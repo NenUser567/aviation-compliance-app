@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import { supabaseAdmin } from "@/lib/supabase";
 import { extractLicenseDataFromImage, ALL_FIELDS } from "@/lib/llm";
 import { runRules } from "@/lib/rules/runRules";

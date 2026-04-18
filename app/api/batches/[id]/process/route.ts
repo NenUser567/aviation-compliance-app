@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import { supabaseAdmin } from "@/lib/supabase";
 import { processDocument } from "@/workers/process-document";
 
