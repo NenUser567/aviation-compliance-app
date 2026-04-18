@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import TopNav from "@/components/top-nav";
+import { explainRecord } from "@/lib/compliance/explanations";
 
 type RecordRow = {
   id: string;
@@ -10,6 +11,7 @@ type RecordRow = {
   license_type: string | null;
   license_number: string | null;
   expiry_date: string | null;
+  medical_expiry_date?: string | null;
   compliance_results?: {
     status?: string;
     days_to_expiry?: number | null;
@@ -42,16 +44,17 @@ export default function RecordsPage() {
   }, [records, query, statusFilter]);
 
   return (
-    <main className="p-8 max-w-6xl mx-auto space-y-6">
+    <main className="p-8 max-w-7xl mx-auto space-y-6">
       <TopNav />
 
       <div>
         <h1 className="text-3xl font-bold">All Records</h1>
         <p className="text-zinc-600 mt-1">
-          Review extracted licensing records and compliance status.
+          Review compliance issues, understand risks, and take action.
         </p>
       </div>
 
+      {/* Filters */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
         <input
           value={query}
@@ -73,6 +76,7 @@ export default function RecordsPage() {
         </select>
       </div>
 
+      {/* Table */}
       <div className="overflow-x-auto rounded-2xl border bg-white">
         <table className="w-full text-sm">
           <thead className="bg-zinc-100">
@@ -81,8 +85,10 @@ export default function RecordsPage() {
               <th className="text-left p-3">License Type</th>
               <th className="text-left p-3">License Number</th>
               <th className="text-left p-3">Expiry Date</th>
-              <th className="text-left p-3">Days to Expiry</th>
+              <th className="text-left p-3">Days</th>
               <th className="text-left p-3">Status</th>
+              <th className="text-left p-3">Reason</th>
+              <th className="text-left p-3">Next Action</th>
             </tr>
           </thead>
 
@@ -91,8 +97,14 @@ export default function RecordsPage() {
               const status = r.compliance_results?.status ?? "UNKNOWN";
               const days = r.compliance_results?.days_to_expiry;
 
+              const { reason, action, severity } = explainRecord({
+                expiry_date: r.expiry_date,
+                medical_expiry_date: r.medical_expiry_date ?? null,
+                status,
+              });
+
               return (
-                <tr key={r.id} className="border-t">
+                <tr key={r.id} className="border-t hover:bg-zinc-50">
                   <td className="p-3">
                     <Link
                       href={`/records/${r.id}`}
@@ -101,14 +113,37 @@ export default function RecordsPage() {
                       {r.full_name ?? "Unnamed Record"}
                     </Link>
                   </td>
+
                   <td className="p-3">{r.license_type ?? "-"}</td>
                   <td className="p-3">{r.license_number ?? "-"}</td>
                   <td className="p-3">{r.expiry_date ?? "-"}</td>
+
                   <td className="p-3">
                     {typeof days === "number" ? days : "-"}
                   </td>
+
                   <td className="p-3">
                     <StatusBadge status={status} />
+                  </td>
+
+                  {/* Reason */}
+                  <td className="p-3 text-zinc-700">
+                    {reason}
+                  </td>
+
+                  {/* Action */}
+                  <td className="p-3">
+                    <span
+                      className={`text-xs font-medium px-2 py-1 rounded-full ${
+                        severity === "HIGH"
+                          ? "bg-red-100 text-red-800"
+                          : severity === "MEDIUM"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      {action}
+                    </span>
                   </td>
                 </tr>
               );
@@ -116,7 +151,7 @@ export default function RecordsPage() {
 
             {!filtered.length && (
               <tr>
-                <td colSpan={6} className="p-6 text-center text-zinc-500">
+                <td colSpan={8} className="p-6 text-center text-zinc-500">
                   No records found.
                 </td>
               </tr>
