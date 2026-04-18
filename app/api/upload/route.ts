@@ -5,6 +5,15 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const files = formData.getAll("files") as File[];
+    let profileId = formData.get("profile_id");
+
+if (
+  !profileId ||
+  profileId === "undefined" ||
+  profileId === "null"
+) {
+  profileId = null;
+} // ✅ NEW
 
     if (!files.length) {
       return NextResponse.json({ error: "No files uploaded." }, { status: 400 });
@@ -41,6 +50,7 @@ export async function POST(req: NextRequest) {
         mime_type: file.type,
         storage_path: storagePath,
         processing_status: "uploaded",
+        extraction_profile_id: profileId || null, // ✅ NEW
       });
 
       if (insertError) throw insertError;
@@ -52,6 +62,8 @@ export async function POST(req: NextRequest) {
       count: files.length,
     });
   } catch (error) {
+    console.error("UPLOAD ERROR:", error);
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Upload failed." },
       { status: 500 }
