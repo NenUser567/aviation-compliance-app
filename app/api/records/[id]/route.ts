@@ -15,8 +15,8 @@ export async function GET(
       *,
       documents (
         id,
+        original_filename,
         storage_path,
-        file_name,
         mime_type
       )
     `
@@ -31,21 +31,25 @@ export async function GET(
     );
   }
 
+  const storagePath = data.documents?.storage_path ?? null;
+
   let document_url: string | null = null;
 
-  const storagePath = data.documents?.storage_path;
-
   if (storagePath) {
-    const { data: publicUrlData } = supabaseAdmin.storage
+  const { data: signedUrlData, error: signedUrlError } =
+    await supabaseAdmin.storage
       .from("documents")
-      .getPublicUrl(storagePath);
+      .createSignedUrl(storagePath, 60 * 60);
 
-    document_url = publicUrlData.publicUrl;
+  if (!signedUrlError) {
+    document_url = signedUrlData.signedUrl;
   }
+}
 
   return NextResponse.json({
     ...data,
     document_url,
+    original_filename: data.documents?.original_filename ?? null,
   });
 }
 
