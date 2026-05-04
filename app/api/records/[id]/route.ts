@@ -10,15 +10,43 @@ export async function GET(
 
   const { data, error } = await supabaseAdmin
     .from("extracted_records")
-    .select("*")
+    .select(
+      `
+      *,
+      documents (
+        id,
+        storage_path,
+        file_name,
+        mime_type
+      )
+    `
+    )
     .eq("id", id)
     .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error || !data) {
+    return NextResponse.json(
+      { error: error?.message || "Record not found" },
+      { status: 500 }
+    );
   }
 
-  return NextResponse.json(data);
+  let document_url: string | null = null;
+
+  const storagePath = data.documents?.storage_path;
+
+  if (storagePath) {
+    const { data: publicUrlData } = supabaseAdmin.storage
+      .from("documents")
+      .getPublicUrl(storagePath);
+
+    document_url = publicUrlData.publicUrl;
+  }
+
+  return NextResponse.json({
+    ...data,
+    document_url,
+  });
 }
 
 export async function PATCH(
@@ -73,17 +101,17 @@ export async function PATCH(
   });
 
   const { error: complianceError } = await supabaseAdmin
-  .from("compliance_results")
-  .upsert(
-    {
-      extracted_record_id: updated.id,
-      status: compliance.status,
-      reasons: compliance.reasons,
-      days_to_expiry: compliance.days_to_expiry,
-      last_evaluated_at: new Date().toISOString(),
-    },
-    { onConflict: "extracted_record_id" }
-  );
+    .from("compliance_results")
+    .upsert(
+      {
+        extracted_record_id: updated.id,
+        status: compliance.status,
+        reasons: compliance.reasons,
+        days_to_expiry: compliance.days_to_expiry,
+        last_evaluated_at: new Date().toISOString(),
+      },
+      { onConflict: "extracted_record_id" }
+    );
 
   if (complianceError) {
     return NextResponse.json(
